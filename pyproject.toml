@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mesh_segmenter"
+version = "0.0.1"
+authors = [{name = "Nikolai Zakharov"}]
+
+[project.scripts]
+segment_mesh = "mesh_segmenter.scripts.segment:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["mesh_segmenter"]
