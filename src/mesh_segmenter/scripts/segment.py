@@ -1,12 +1,15 @@
-from argparse import ArgumentParser, Namespace
+import argparse
 from pathlib import Path
 import logging
 
-from mesh_segmenter.utils.utils import parse_ply 
+from mesh_segmenter.utils.utils import parse_ply
+from mesh_segmenter.graph import DualGraph
 
 
-def _parse_args() -> Namespace:
-    parser = ArgumentParser()
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
     parser.add_argument(
         "-i",
         "--input_file",
@@ -43,6 +46,7 @@ def main():
     
     # Parse ply file, form Mesh
     mesh = parse_ply(ply_path=args.input_file)
+    dual_graph = DualGraph(mesh)
 
 
 if __name__ == "__main__":

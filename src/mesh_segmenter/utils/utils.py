@@ -57,9 +57,16 @@ def parse_ply(ply_path: Path) -> Mesh:
         v2 = out_mesh.vertices[int(v2_idx)]
         v3 = out_mesh.vertices[int(v3_idx)]
 
-        face = Face(v1=v1, v2=v2, v3=v3)
+        face = Face(
+            vertex_one=v1,
+            vertex_two=v2,
+            vertex_three=v3
+        )
         out_mesh.faces.append(face)
-
+    
+    # TODO: check why can happen such cases?
+    # Filter out non-unique faces
+    out_mesh.faces = list(set(out_mesh.faces))
     return out_mesh
 
 

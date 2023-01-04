@@ -1,10 +1,14 @@
 from dataclasses import dataclass, field
-from enum import Enum, auto
+from typing import Union
+from enum import Enum
 
 
 class DecompositionTypes(Enum):
-    # TODO: to str
-    binary = auto()
+    binary = "binary"
+    k_way = "k_way"
+
+    def __str__(self):
+        return self.value
 
 
 @dataclass(frozen=True)
@@ -17,7 +21,7 @@ class Colour:
 COLOUR_RED = Colour(255, 0, 0)
 COLOUR_GREEN = Colour(0, 255, 0)
 COLOUR_BLUE = Colour(0, 0, 255)
-COLOUR_WHITE = Colour(255, 255, 255)
+COLOUR_BLACK = Colour(0, 0, 0)
 
 
 @dataclass(frozen=True)
@@ -26,20 +30,34 @@ class Vertex:
     y: float
     z: float
 
+    def __add__(self, other: Union[type["Vertex"], int]) -> type["Vertex"]:
+        if isinstance(other, int):
+            return Vertex(
+                self.x + other,
+                self.y + other,
+                self.z + other,
+            )
+        else:
+            return Vertex(
+                self.x + other.x,
+                self.y + other.y,
+                self.z + other.z,
+            )
 
+    def __truediv__(self, other: int) -> type["Vertex"]:
+        return Vertex(
+            self.x / other,
+            self.y / other,
+            self.z / other,
+        )
+
+
+@dataclass(frozen=True)
 class Face:
-
-    def __init__(
-        self,
-        v1: Vertex,
-        v2: Vertex,
-        v3: Vertex,
-        colour: Colour = COLOUR_WHITE,
-    ):
-        self.v1 = v1
-        self.v2 = v2
-        self.v3 = v3
-        self.colour = colour
+    vertex_one: Vertex
+    vertex_two: Vertex
+    vertex_three: Vertex
+    colour: Colour = COLOUR_BLACK
 
 
 @dataclass

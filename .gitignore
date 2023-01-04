@@ -1,5 +1,6 @@
 .ipynb_checkpoints
 *.egg
 *.pyc
+*.egg-info
 
 models
