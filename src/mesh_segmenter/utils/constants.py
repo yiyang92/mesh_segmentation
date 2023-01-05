@@ -43,6 +43,20 @@ class Vertex:
                 self.y + other.y,
                 self.z + other.z,
             )
+    
+    def __sub__(self, other: Union[type["Vertex"], int]) -> type["Vertex"]:
+        if isinstance(other, int):
+            return Vertex(
+                self.x - other,
+                self.y - other,
+                self.z - other,
+            )
+        else:
+            return Vertex(
+                self.x - other.x,
+                self.y - other.y,
+                self.z - other.z,
+            )
 
     def __truediv__(self, other: int) -> type["Vertex"]:
         return Vertex(
@@ -50,6 +64,17 @@ class Vertex:
             self.y / other,
             self.z / other,
         )
+
+    def cross(self, other: type["Vertex"]) -> type["Vertex"]:
+        return Vertex(
+            self.y * other.z - self.z * other.y,
+            self.z * other.x - self.x * other.z,
+            self.x * other.y - self.y * other.x,
+        )
+    
+    @property
+    def length(self):
+        return (self.x ** 2 + self.y ** 2 + self.z ** 2) ** 0.5
 
 
 @dataclass(frozen=True)

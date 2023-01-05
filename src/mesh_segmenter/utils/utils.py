@@ -70,10 +70,6 @@ def parse_ply(ply_path: Path) -> Mesh:
     return out_mesh
 
 
-
-
-
-
 def write_ply(input_mesh: Mesh, out_path: Path):
     # TODO: write ply file. vertices + vertex_indices and colours
     ...
