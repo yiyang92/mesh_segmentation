@@ -2,7 +2,7 @@ import argparse
 from pathlib import Path
 import logging
 
-from mesh_segmenter.utils.utils import parse_ply
+from mesh_segmenter.utils.utils import parse_ply, write_ply
 from mesh_segmenter.graph import DualGraph
 
 
@@ -48,6 +48,7 @@ def main():
     mesh = parse_ply(ply_path=args.input_file)
     dual_graph = DualGraph(mesh)
 
+    write_ply(mesh=mesh, out_path=args.output_file)
 
 if __name__ == "__main__":
     main()

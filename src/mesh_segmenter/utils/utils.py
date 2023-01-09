@@ -1,10 +1,12 @@
 from pathlib import Path
 
-from mesh_segmenter.utils.constants import Vertex, Face, Mesh
+from mesh_segmenter.utils.mesh import Vertex, Face, Mesh
+from mesh_segmenter.utils.constants import CONVEX_LIMIT, EPSILON
 
 HEADER_START = "ply"
+FORMAT = "format ascii 1.0"
 HEADER_END = "end_header"
-OUT_COMMENT = "mesh segmenter output for Nikolai Zakharov"
+OUT_COMMENT = "comment mesh segmenter output by Nikolai Zakharov"
 ELEMENT_VERTEX = "element vertex"
 ELEMENT_FACE = "element face"
 
@@ -19,7 +21,9 @@ def parse_ply(ply_path: Path) -> Mesh:
     with ply_path.open("r") as input_file:
         input_lines = input_file.readlines()
 
-    out_mesh = Mesh()
+    out_mesh_vertices: list[Vertex] = []
+    out_mesh_faces: list[Face] = []
+
     n_vertices = 0
     n_faces = 0
     start_idx = 0
@@ -27,24 +31,24 @@ def parse_ply(ply_path: Path) -> Mesh:
     for idx, line in enumerate(input_lines):
         if idx == 0 and line.strip() != HEADER_START:
             raise ValueError("Invalid ply")
-        
+
         if ELEMENT_VERTEX in line:
             n_vertices = int(line.strip().split()[-1])
-        
+
         if ELEMENT_FACE in line:
             n_faces = int(line.strip().split()[-1])
-        
+
         if HEADER_END in line:
             start_idx = idx + 1
             break
-    
+
     # Parse vertices
     for idx in range(start_idx, start_idx + n_vertices):
         line = input_lines[idx]
-        out_mesh.vertices.append(
+        out_mesh_vertices.append(
             Vertex(*[float(i) for i in line.strip().split()[:3]])
         )
-    
+
     start_idx += n_vertices
     # Parse faces
     for idx in range(start_idx, start_idx + n_faces):
@@ -53,23 +57,62 @@ def parse_ply(ply_path: Path) -> Mesh:
         # Assume triangles
         _, v1_idx, v2_idx, v3_idx = line.strip().split()
 
-        v1 = out_mesh.vertices[int(v1_idx)]
-        v2 = out_mesh.vertices[int(v2_idx)]
-        v3 = out_mesh.vertices[int(v3_idx)]
+        v1 = out_mesh_vertices[int(v1_idx)]
+        v2 = out_mesh_vertices[int(v2_idx)]
+        v3 = out_mesh_vertices[int(v3_idx)]
 
         face = Face(
             vertex_one=v1,
             vertex_two=v2,
             vertex_three=v3
         )
-        out_mesh.faces.append(face)
-    
+        out_mesh_faces.append(face)
+
     # TODO: check why can happen such cases?
     # Filter out non-unique faces
-    out_mesh.faces = list(set(out_mesh.faces))
+    out_mesh_faces = list(set(out_mesh_faces))
+    out_mesh = Mesh(
+        vertices=out_mesh_vertices,
+        faces=out_mesh_faces
+    )
     return out_mesh
 
 
-def write_ply(input_mesh: Mesh, out_path: Path):
+def write_ply(mesh: Mesh, out_path: Path):
     # TODO: write ply file. vertices + vertex_indices and colours
+    header = f"""{HEADER_START}
+{FORMAT}
+{OUT_COMMENT}
+{ELEMENT_VERTEX} {len(mesh.vertices)}
+{mesh.vertices[0].out_properties}
+{ELEMENT_FACE} {len(mesh.faces)}
+property list uchar int vertex_indices
+{mesh.faces[0].out_properties}
+{HEADER_END}
+"""
+    vertices_str = "\n".join([str(vtx) for vtx in mesh.vertices])
+    faces_str = []
+    # 3 (num vertices) vertex_id_0 vertex_id_1 vertex_id_2
+    for face in mesh.faces:
+        vertice_ids = ' '.join([
+            str(mesh.get_vertex_id(vtx)) for vtx in face.vertices
+        ])
+        faces_str.append(f"3 {vertice_ids} {face.properties_str}")
+
+    with out_path.open("w") as f:
+        f.writelines([header, vertices_str, "\n", "\n".join(faces_str), "\n"])
+
+
+def angular_distance(normal_one: Vertex, normal_two: Vertex) -> float:
+    mu = 1.0
+
+    # TODO: angle, not cos
+    if normal_one.angle(normal_two) > CONVEX_LIMIT:
+        # Small positive
+        mu = EPSILON
+
+    return mu * (1 - normal_one.cos_angle(normal_two))
+
+
+def geodesic_distance(normal_one: Vertex, normal_two: Vertex) -> float:
     ...

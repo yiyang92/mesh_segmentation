@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import Union
 from enum import Enum
 
 
@@ -17,75 +16,16 @@ class Colour:
     g: int
     b: int
 
+    def __str__(self) -> str:
+        return f"{self.r} {self.g} {self.b}"
+
 
 COLOUR_RED = Colour(255, 0, 0)
 COLOUR_GREEN = Colour(0, 255, 0)
 COLOUR_BLUE = Colour(0, 0, 255)
 COLOUR_BLACK = Colour(0, 0, 0)
+COLOUR_WHITE = Colour(255, 255, 255)
 
-
-@dataclass(frozen=True)
-class Vertex:
-    x: float
-    y: float
-    z: float
-
-    def __add__(self, other: Union[type["Vertex"], int]) -> type["Vertex"]:
-        if isinstance(other, int):
-            return Vertex(
-                self.x + other,
-                self.y + other,
-                self.z + other,
-            )
-        else:
-            return Vertex(
-                self.x + other.x,
-                self.y + other.y,
-                self.z + other.z,
-            )
-    
-    def __sub__(self, other: Union[type["Vertex"], int]) -> type["Vertex"]:
-        if isinstance(other, int):
-            return Vertex(
-                self.x - other,
-                self.y - other,
-                self.z - other,
-            )
-        else:
-            return Vertex(
-                self.x - other.x,
-                self.y - other.y,
-                self.z - other.z,
-            )
-
-    def __truediv__(self, other: int) -> type["Vertex"]:
-        return Vertex(
-            self.x / other,
-            self.y / other,
-            self.z / other,
-        )
-
-    def cross(self, other: type["Vertex"]) -> type["Vertex"]:
-        return Vertex(
-            self.y * other.z - self.z * other.y,
-            self.z * other.x - self.x * other.z,
-            self.x * other.y - self.y * other.x,
-        )
-    
-    @property
-    def length(self):
-        return (self.x ** 2 + self.y ** 2 + self.z ** 2) ** 0.5
-
-
-@dataclass(frozen=True)
-class Face:
-    vertex_one: Vertex
-    vertex_two: Vertex
-    vertex_three: Vertex
-    colour: Colour = COLOUR_BLACK
-
-
-@dataclass
-class Mesh:
-    vertices: list[Vertex] = field(default_factory=list)
-    faces: list[Face] = field(default_factory=list)
+EPSILON = 0.0001
+CONVEX_LIMIT = 3.14159265  # > 180 degree => convex
+DELTA = 0.5

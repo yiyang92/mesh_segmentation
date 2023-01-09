@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 import tqdm
 
-from mesh_segmenter.utils.constants import Mesh, Vertex, Face
+from mesh_segmenter.utils.mesh import Mesh, Vertex, Face
 
 
 @dataclass(frozen=True)
@@ -19,7 +19,9 @@ class DualGraph:
 
     def __init__(self, mesh: Mesh) -> None:
         # Vertices and neighbours
-        self._graph = defaultdict(list)
+        self._graph = defaultdict(list)  # Graph of connected faces
+        self._weights = {}  # Weight between all faces
+        self._distances = {}  # Distances between all faces
         self._mesh = mesh
         self._create_graph()
 
@@ -76,3 +78,8 @@ class DualGraph:
                     self._graph[node_one].append(node_two)
                     self._graph[node_two].append(node_one)
         logging.info("Dual graph created")
+
+    # def _calculate_weights(self):
+    #     # Calclulate angular disctances
+
+    #     # Calculate geodesic distances
