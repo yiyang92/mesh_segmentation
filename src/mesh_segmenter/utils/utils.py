@@ -79,7 +79,7 @@ def parse_ply(ply_path: Path) -> Mesh:
 
 
 def write_ply(mesh: Mesh, out_path: Path):
-    # TODO: write ply file. vertices + vertex_indices and colours
+    """Write ply file with vertices + vertex_indices and colours."""
     header = f"""{HEADER_START}
 {FORMAT}
 {OUT_COMMENT}
@@ -103,10 +103,13 @@ property list uchar int vertex_indices
         f.writelines([header, vertices_str, "\n", "\n".join(faces_str), "\n"])
 
 
-def angular_distance(normal_one: Vertex, normal_two: Vertex) -> float:
+def angular_distance(face_one: Face, face_two: Face) -> float:
+    """Computes angular distance between adjacent faces."""
     mu = 1.0
 
-    # TODO: angle, not cos
+    normal_one = face_one.normal
+    normal_two = face_two.normal
+
     if normal_one.angle(normal_two) > CONVEX_LIMIT:
         # Small positive
         mu = EPSILON
@@ -114,5 +117,31 @@ def angular_distance(normal_one: Vertex, normal_two: Vertex) -> float:
     return mu * (1 - normal_one.cos_angle(normal_two))
 
 
-def geodesic_distance(normal_one: Vertex, normal_two: Vertex) -> float:
-    ...
+def geodesic_distance(
+    face_one: Face,
+    face_two: Face,
+    common_one: Vertex,
+    common_two: Vertex,
+) -> float:
+    """Find a geodesic distance between 2 adjacent faces.
+
+        It is defined as a shotest path between their centers.
+    """
+    # TODO: why not right?
+    # 2 common points, find edge vector
+    edge = common_one - common_two
+
+    # Dot product between centres and common edge
+    dot_one = face_one.center.dot(edge)
+    dot_two = face_two.center.dot(edge)
+
+    # Find projections, vector points to the point on the edge
+    proj_one = edge * dot_one
+    proj_two = edge * dot_two
+
+    # Find orthogonals
+    line_one = face_one.center - proj_one
+    line_two = face_two.center - proj_two
+    line_three = proj_two - proj_one
+
+    return line_one.length + line_two.length + line_three.length

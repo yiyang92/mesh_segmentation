@@ -131,6 +131,21 @@ class Face:
     def vertices(self) -> list[Vertex]:
         return [self.vertex_one, self.vertex_two, self.vertex_three]
 
+    @property
+    def center(self) -> Vertex:
+        return sum(self.vertices) / 3.0
+
+    @property
+    def normal(self) -> Vertex:
+        # Find 2 edge vectors
+        edge_one = self.vertex_one - self.vertex_two
+        edge_two = self.vertex_one - self.vertex_three
+
+        # Find cross product to get a vector, pointing as normal
+        normal = edge_one.cross(edge_two)
+        normal /= normal.length  # Normalize for unit length
+        return normal
+
 
 class Mesh:
     def __init__(self, vertices: list[Vertex], faces: list[Face]) -> None:

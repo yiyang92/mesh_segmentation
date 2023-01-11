@@ -4,14 +4,16 @@ from dataclasses import dataclass
 
 import tqdm
 
-from mesh_segmenter.utils.mesh import Mesh, Vertex, Face
+from mesh_segmenter.utils.mesh import Mesh, Face
+from mesh_segmenter.utils.utils import angular_distance, geodesic_distance
+from mesh_segmenter.utils.constants import DELTA
 
 
-@dataclass(frozen=True)
-class GraphNode:
-    face: Face
-    center: Vertex
-    normal: Vertex
+@dataclass
+class GraphEdge:
+    ang_distance: float
+    geod_distance: float
+    weight: float
 
 
 class DualGraph:
@@ -19,33 +21,22 @@ class DualGraph:
 
     def __init__(self, mesh: Mesh) -> None:
         # Vertices and neighbours
-        self._graph = defaultdict(list)  # Graph of connected faces
-        self._weights = {}  # Weight between all faces
-        self._distances = {}  # Distances between all faces
-        self._mesh = mesh
+        # Weighted graph of connected faces
+        self._graph: dict[Face, dict[Face, GraphEdge]] = defaultdict(dict)
+        # Keep track for weight
+        self._ang_dists: list[float] = []
+        self._geod_dists: list[float] = []
+        # Distances between all faces (TODO: is it needed here?)
+        self._distances: dict[Face, Face] = {}
+        self._mesh: Mesh = mesh
         self._create_graph()
+        self._calculate_weights()
 
-    @staticmethod
-    def _face_center(face: Face) -> Vertex:
-        center = (face.vertex_one + face.vertex_three + face.vertex_three) / 3
-        return center
-
-    @staticmethod
-    def _face_normal(face: Face) -> Vertex:
-        # Find 2 edge vectors
-        edge_one = face.vertex_one - face.vertex_two
-        edge_two = face.vertex_one - face.vertex_three
-        
-        # Find cross product to get a vector, pointing as normal
-        normal = edge_one.cross(edge_two)
-        normal /= normal.length
-        return normal
-    
     def _create_graph(self):
         # Find adjacent faces - 2 common vertices
         faces = self._mesh.faces
 
-        logging.info("Creating a dual graph")
+        logging.info("Creating a dual graph, calculating angular and geodesic distances.")
         for i, face_one in tqdm.tqdm(enumerate(faces), total=len(faces)):
             for j, face_two in enumerate(faces):
                 if i == j:
@@ -62,24 +53,46 @@ class DualGraph:
                     face_two.vertex_two,
                     face_two.vertex_three
                 }
-
-                common = vts_one.intersection(vts_two)
+                common = list(vts_one.intersection(vts_two))
                 if len(common) == 2:
-                    node_one = GraphNode(
-                        face=face_one,
-                        center=self._face_center(face_one),
-                        normal=self._face_normal(face_one),
+                    # Define connections (weights calculated later)
+                    ang_distance = angular_distance(face_one, face_two)
+                    geod_distance = geodesic_distance(
+                        face_one=face_one,
+                        face_two=face_two,
+                        common_one=common[0],
+                        common_two=common[1],
                     )
-                    node_two = GraphNode(
-                        face=face_two,
-                        center=self._face_center(face_two),
-                        normal=self._face_normal(face_two),
+                    self._ang_dists.append(ang_distance)
+                    self._geod_dists.append(geod_distance)
+                    # Add arcs
+                    self._graph[face_one][face_two] = GraphEdge(
+                        ang_distance=ang_distance,
+                        geod_distance=geod_distance,
+                        weight=None,
                     )
-                    self._graph[node_one].append(node_two)
-                    self._graph[node_two].append(node_one)
+                    self._graph[face_two][face_one] = GraphEdge(
+                        ang_distance=ang_distance,
+                        geod_distance=geod_distance,
+                        weight=None,
+                    )
         logging.info("Dual graph created")
 
-    # def _calculate_weights(self):
-    #     # Calclulate angular disctances
+    def _calculate_weights(self):
+        logging.info("Calculating weights for dual graph arcs")
+        
+        # Calculate average
+        average_angular = sum(self._ang_dists) / len(self._ang_dists)
+        average_geod = sum(self._geod_dists) / len(self._geod_dists)
+        
+        # Caclulate weights for arcs
+        for face_one in self._graph:
+            for face_two in self._graph[face_one]:
+                edge = self._graph[face_one][face_two]
+                if edge.weight is not None:
+                    continue
 
-    #     # Calculate geodesic distances
+                ang = (1 - DELTA) * edge.ang_distance / average_angular
+                geod = DELTA * edge.geod_distance / average_geod
+                edge.weight = ang + geod
+        logging.info("Dual graph weights were calculated")
