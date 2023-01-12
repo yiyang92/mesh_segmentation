@@ -161,3 +161,11 @@ class Mesh:
 
     def get_vertex_id(self, vertex: Vertex) -> int:
         return self.vertex_to_id[vertex]
+    
+    @property
+    def num_faces(self) -> int:
+        return len(self.faces)
+    
+    @property
+    def num_vertices(self) -> int:
+        return len(self.vertices)

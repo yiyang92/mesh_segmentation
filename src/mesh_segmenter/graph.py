@@ -1,4 +1,6 @@
 import logging
+import heapq
+from typing import Union, Type
 from collections import defaultdict
 from dataclasses import dataclass
 
@@ -6,7 +8,7 @@ import tqdm
 
 from mesh_segmenter.utils.mesh import Mesh, Face
 from mesh_segmenter.utils.utils import angular_distance, geodesic_distance
-from mesh_segmenter.utils.constants import DELTA
+from mesh_segmenter.utils.constants import DELTA, DIST_N_SMALLEST
 
 
 @dataclass
@@ -15,24 +17,55 @@ class GraphEdge:
     geod_distance: float
     weight: float
 
+    def __lt__(self, other: Type["GraphEdge"]) -> bool:
+        if self.weight != other.weight:
+            return self.weight < other.weight
+        return False
+
+
+@dataclass(frozen=True)
+class HeapNode:
+    distance: float
+    face: Face
+
+    def __lt__(self, other: Type["HeapNode"]) -> bool:
+        if self.distance != other.distance:
+            return self.distance < other.distance
+        return False
+
 
 class DualGraph:
     """Graph definition - adjacency list between centers of faces."""
 
-    def __init__(self, mesh: Mesh) -> None:
+    def __init__(self, mesh: Mesh, dist_n_smallest=DIST_N_SMALLEST) -> None:
         # Vertices and neighbours
         # Weighted graph of connected faces
         self._graph: dict[Face, dict[Face, GraphEdge]] = defaultdict(dict)
         # Keep track for weight
         self._ang_dists: list[float] = []
         self._geod_dists: list[float] = []
-        # Distances between all faces (TODO: is it needed here?)
-        self._distances: dict[Face, Face] = {}
         self._mesh: Mesh = mesh
+        # Distances
+        self._dist_n_smallest: int = dist_n_smallest
+        self._distance: dict[Face, Face] = {}
         self._create_graph()
         self._calculate_weights()
+        self._calculate_distances()
+    
+    @property
+    def graph(self) -> dict[Face, dict[Face, GraphEdge]]:
+        return self._graph
+    
+    def get_distance(self, face_one: Face, face_two: Face) -> Union[None, float]:
+        if face_one not in self._distance:
+            return None
 
-    def _create_graph(self):
+        if face_two not in self._distance[face_one]:
+            return float("infinity")
+
+        return self._distance[face_one][face_two]
+
+    def _create_graph(self) -> None:
         # Find adjacent faces - 2 common vertices
         faces = self._mesh.faces
 
@@ -78,7 +111,7 @@ class DualGraph:
                     )
         logging.info("Dual graph created")
 
-    def _calculate_weights(self):
+    def _calculate_weights(self) -> None:
         logging.info("Calculating weights for dual graph arcs")
         
         # Calculate average
@@ -96,3 +129,39 @@ class DualGraph:
                 geod = DELTA * edge.geod_distance / average_geod
                 edge.weight = ang + geod
         logging.info("Dual graph weights were calculated")
+
+    def _shortest_path_dijkstra(
+        self,
+        start: Face,
+    ) -> dict[GraphEdge, float]:
+        # Distances to nodes
+        distances = {node: float("infinity") for node in self.graph}
+        distances[start] = 0.0
+        unvisited = [HeapNode(distance=distances[start], face=start)]
+        heapq.heapify(unvisited)
+
+        while unvisited:
+            # The closest unvisited node, greedily look
+            curr_node = heapq.heappop(unvisited)
+            # Update distances of neighbors
+            for neighbor, edge in heapq.nsmallest(
+                n=self._dist_n_smallest,
+                iterable=self.graph[curr_node.face].items(),
+                key=lambda x: x[1],
+                ):
+                weight = edge.weight
+                if weight + curr_node.distance < distances[neighbor]:
+                    distances[neighbor] = weight + curr_node.distance
+                    heapq.heappush(
+                        unvisited,
+                        HeapNode(distance=distances[neighbor], face=neighbor))
+
+        return distances
+
+    def _calculate_distances(self):
+        logging.info("Calculating distances between faces")
+        for face in tqdm.tqdm(self._mesh.faces, total=self._mesh.num_faces):
+            distances = self._shortest_path_dijkstra(face)
+            self._distance[face] = distances
+
+        logging.info("Distances calulated")
