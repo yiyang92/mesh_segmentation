@@ -51,12 +51,14 @@ class DualGraph:
         self._create_graph()
         self._calculate_weights()
         self._calculate_distances()
-    
+
     @property
     def graph(self) -> dict[Face, dict[Face, GraphEdge]]:
         return self._graph
-    
-    def get_distance(self, face_one: Face, face_two: Face) -> Union[None, float]:
+
+    def get_distance(
+        self, face_one: Face, face_two: Face
+    ) -> Union[None, float]:
         if face_one not in self._distance:
             return None
 
@@ -69,7 +71,9 @@ class DualGraph:
         # Find adjacent faces - 2 common vertices
         faces = self._mesh.faces
 
-        logging.info("Creating a dual graph, calculating angular and geodesic distances.")
+        logging.info(
+            "Creating a dual graph, calculating angular and geodesic distances."
+        )
         for i, face_one in tqdm.tqdm(enumerate(faces), total=len(faces)):
             for j, face_two in enumerate(faces):
                 if i == j:
@@ -79,12 +83,12 @@ class DualGraph:
                 vts_one = {
                     face_one.vertex_one,
                     face_one.vertex_two,
-                    face_two.vertex_three
+                    face_two.vertex_three,
                 }
                 vts_two = {
                     face_two.vertex_one,
                     face_two.vertex_two,
-                    face_two.vertex_three
+                    face_two.vertex_three,
                 }
                 common = list(vts_one.intersection(vts_two))
                 if len(common) == 2:
@@ -113,11 +117,11 @@ class DualGraph:
 
     def _calculate_weights(self) -> None:
         logging.info("Calculating weights for dual graph arcs")
-        
+
         # Calculate average
         average_angular = sum(self._ang_dists) / len(self._ang_dists)
         average_geod = sum(self._geod_dists) / len(self._geod_dists)
-        
+
         # Caclulate weights for arcs
         for face_one in self._graph:
             for face_two in self._graph[face_one]:
@@ -148,13 +152,14 @@ class DualGraph:
                 n=self._dist_n_smallest,
                 iterable=self.graph[curr_node.face].items(),
                 key=lambda x: x[1],
-                ):
+            ):
                 weight = edge.weight
                 if weight + curr_node.distance < distances[neighbor]:
                     distances[neighbor] = weight + curr_node.distance
                     heapq.heappush(
                         unvisited,
-                        HeapNode(distance=distances[neighbor], face=neighbor))
+                        HeapNode(distance=distances[neighbor], face=neighbor),
+                    )
 
         return distances
 

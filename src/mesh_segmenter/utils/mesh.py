@@ -13,7 +13,7 @@ class Vertex:
 
     @property
     def length(self) -> float:
-        return (self.x ** 2 + self.y ** 2 + self.z ** 2) ** 0.5
+        return (self.x**2 + self.y**2 + self.z**2) ** 0.5
 
     @property
     def components(self) -> list[float]:
@@ -24,7 +24,9 @@ class Vertex:
         """Return properties, defined in the vertex."""
         return """property float x\nproperty float y\nproperty float z"""
 
-    def __add__(self, other: Union[type["Vertex"], int, float]) -> type["Vertex"]:
+    def __add__(
+        self, other: Union[type["Vertex"], int, float]
+    ) -> type["Vertex"]:
         if isinstance(other, int) or isinstance(other, float):
             return Vertex(
                 self.x + other,
@@ -38,7 +40,9 @@ class Vertex:
                 self.z + other.z,
             )
 
-    def __radd__(self, other: Union[type["Vertex"], int, float]) -> type["Vertex"]:
+    def __radd__(
+        self, other: Union[type["Vertex"], int, float]
+    ) -> type["Vertex"]:
         if isinstance(other, int) or isinstance(other, float):
             return Vertex(
                 self.x + other,
@@ -52,7 +56,9 @@ class Vertex:
                 self.z + other.z,
             )
 
-    def __sub__(self, other: Union[type["Vertex"], int, float]) -> type["Vertex"]:
+    def __sub__(
+        self, other: Union[type["Vertex"], int, float]
+    ) -> type["Vertex"]:
         if isinstance(other, int) or isinstance(other, float):
             return Vertex(
                 self.x - other,
@@ -66,7 +72,9 @@ class Vertex:
                 self.z - other.z,
             )
 
-    def __mul__(self, other: Union[type["Vertex"], int, float]) -> type["Vertex"]:
+    def __mul__(
+        self, other: Union[type["Vertex"], int, float]
+    ) -> type["Vertex"]:
         if isinstance(other, int) or isinstance(other, float):
             return Vertex(
                 self.x * other,
@@ -97,7 +105,7 @@ class Vertex:
 
     def dot(self, other: type["Vertex"]) -> float:
         """Calculates dot product between vectors, pointed to vertices."""
-        return sum([x*y for x, y in zip(self.components, other.components)])
+        return sum([x * y for x, y in zip(self.components, other.components)])
 
     def cos_angle(self, other: type["Vertex"]) -> float:
         """Calculates a cosine of angel between two vectors, pointed to vertices."""
@@ -161,11 +169,11 @@ class Mesh:
 
     def get_vertex_id(self, vertex: Vertex) -> int:
         return self.vertex_to_id[vertex]
-    
+
     @property
     def num_faces(self) -> int:
         return len(self.faces)
-    
+
     @property
     def num_vertices(self) -> int:
         return len(self.vertices)

@@ -4,6 +4,7 @@ import logging
 
 from mesh_segmenter.utils.utils import parse_ply, write_ply
 from mesh_segmenter.graph import DualGraph
+from mesh_segmenter.segmenter import BinarySegmenter
 
 
 def _parse_args() -> argparse.Namespace:
@@ -43,12 +44,14 @@ def _parse_args() -> argparse.Namespace:
 def main():
     args = _parse_args()
     logging.basicConfig(level=logging.getLevelName(args.log_level))
-    
+
     # Parse ply file, form Mesh
     mesh = parse_ply(ply_path=args.input_file)
     dual_graph = DualGraph(mesh)
+    segmenter = BinarySegmenter(mesh=mesh, dual_graph=dual_graph)
 
     write_ply(mesh=mesh, out_path=args.output_file)
+
 
 if __name__ == "__main__":
     main()

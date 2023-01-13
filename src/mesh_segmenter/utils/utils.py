@@ -17,7 +17,7 @@ def parse_ply(ply_path: Path) -> Mesh:
 
     if ply_path.suffix != ".ply":
         raise ValueError("Input file should have .ply extension")
-    
+
     with ply_path.open("r") as input_file:
         input_lines = input_file.readlines()
 
@@ -53,7 +53,7 @@ def parse_ply(ply_path: Path) -> Mesh:
     # Parse faces
     for idx in range(start_idx, start_idx + n_faces):
         line = input_lines[idx]
-        
+
         # Assume triangles
         _, v1_idx, v2_idx, v3_idx = line.strip().split()
 
@@ -61,20 +61,13 @@ def parse_ply(ply_path: Path) -> Mesh:
         v2 = out_mesh_vertices[int(v2_idx)]
         v3 = out_mesh_vertices[int(v3_idx)]
 
-        face = Face(
-            vertex_one=v1,
-            vertex_two=v2,
-            vertex_three=v3
-        )
+        face = Face(vertex_one=v1, vertex_two=v2, vertex_three=v3)
         out_mesh_faces.append(face)
 
     # TODO: check why can happen such cases?
     # Filter out non-unique faces
     out_mesh_faces = list(set(out_mesh_faces))
-    out_mesh = Mesh(
-        vertices=out_mesh_vertices,
-        faces=out_mesh_faces
-    )
+    out_mesh = Mesh(vertices=out_mesh_vertices, faces=out_mesh_faces)
     return out_mesh
 
 
@@ -94,9 +87,9 @@ property list uchar int vertex_indices
     faces_str = []
     # 3 (num vertices) vertex_id_0 vertex_id_1 vertex_id_2
     for face in mesh.faces:
-        vertice_ids = ' '.join([
-            str(mesh.get_vertex_id(vtx)) for vtx in face.vertices
-        ])
+        vertice_ids = " ".join(
+            [str(mesh.get_vertex_id(vtx)) for vtx in face.vertices]
+        )
         faces_str.append(f"3 {vertice_ids} {face.properties_str}")
 
     with out_path.open("w") as f:
@@ -125,23 +118,23 @@ def geodesic_distance(
 ) -> float:
     """Find a geodesic distance between 2 adjacent faces.
 
-        It is defined as a shotest path between their centers.
+    It is defined as a shotest path between their centers.
     """
-    # TODO: why not right?
-    # 2 common points, find edge vector
+    # TODO: check
+    # 2 common points, find edge vector direction
     edge = common_one - common_two
 
-    # Dot product between centres and common edge
-    dot_one = face_one.center.dot(edge)
-    dot_two = face_two.center.dot(edge)
+    # Vectors from centers to the edge
+    face_one_c_edge = face_one.center - common_one
+    face_two_c_edge = face_two.center - common_one
 
-    # Find projections, vector points to the point on the edge
-    proj_one = edge * dot_one
-    proj_two = edge * dot_two
+    # Orthogonal vector
+    face_one_c_orth = face_one_c_edge.cross(edge)
+    face_two_c_orth = face_two_c_edge.cross(edge)
 
-    # Find orthogonals
-    line_one = face_one.center - proj_one
-    line_two = face_two.center - proj_two
-    line_three = proj_two - proj_one
+    # Find lengths and normalize
+    line_one_len = face_one_c_orth.length() / edge.length()
+    line_two_len = face_two_c_orth.length() / edge.length()
+    line_three_len = (face_one_c_orth - face_two_c_orth).length()
 
-    return line_one.length + line_two.length + line_three.length
+    return line_one_len + line_two_len + line_three_len
