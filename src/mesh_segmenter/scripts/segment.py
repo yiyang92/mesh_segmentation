@@ -2,6 +2,7 @@ import argparse
 from pathlib import Path
 import logging
 
+from mesh_segmenter.utils.constants import DecomposeMode
 from mesh_segmenter.utils.utils import parse_ply, write_ply
 from mesh_segmenter.graph import DualGraph
 from mesh_segmenter.segmenter import BinarySegmenter
@@ -28,8 +29,9 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "-m",
         "--decompose_mode",
-        type=Path,
-        default=Path("TODO"),
+        type=str,
+        default=DecomposeMode.binary,
+        choices=list(DecomposeMode),
     )
     parser.add_argument(
         "-l",
@@ -48,9 +50,13 @@ def main():
     # Parse ply file, form Mesh
     mesh = parse_ply(ply_path=args.input_file)
     dual_graph = DualGraph(mesh)
-    segmenter = BinarySegmenter(mesh=mesh, dual_graph=dual_graph)
 
-    write_ply(mesh=mesh, out_path=args.output_file)
+    # Binary
+    segmenter = BinarySegmenter()
+    out_mesh = segmenter(mesh=mesh, dual_graph=dual_graph)
+
+    # Output results
+    write_ply(mesh=out_mesh, out_path=args.output_file)
 
 
 if __name__ == "__main__":

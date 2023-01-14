@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from mesh_segmenter.utils.mesh import Vertex, Face, Mesh
-from mesh_segmenter.utils.constants import CONVEX_LIMIT, EPSILON
+from mesh_segmenter.utils.constants import CONVEX_LIMIT, ETA
 
 HEADER_START = "ply"
 FORMAT = "format ascii 1.0"
@@ -98,16 +98,16 @@ property list uchar int vertex_indices
 
 def angular_distance(face_one: Face, face_two: Face) -> float:
     """Computes angular distance between adjacent faces."""
-    mu = 1.0
+    eta = 1.0
 
     normal_one = face_one.normal
     normal_two = face_two.normal
 
     if normal_one.angle(normal_two) > CONVEX_LIMIT:
         # Small positive
-        mu = EPSILON
+        eta = ETA
 
-    return mu * (1 - normal_one.cos_angle(normal_two))
+    return eta * (1 - normal_one.cos_angle(normal_two))
 
 
 def geodesic_distance(
@@ -133,8 +133,8 @@ def geodesic_distance(
     face_two_c_orth = face_two_c_edge.cross(edge)
 
     # Find lengths and normalize
-    line_one_len = face_one_c_orth.length() / edge.length()
-    line_two_len = face_two_c_orth.length() / edge.length()
-    line_three_len = (face_one_c_orth - face_two_c_orth).length()
+    line_one_len = face_one_c_orth.length / edge.length
+    line_two_len = face_two_c_orth.length / edge.length
+    line_three_len = (face_one_c_orth - face_two_c_orth).length
 
     return line_one_len + line_two_len + line_three_len

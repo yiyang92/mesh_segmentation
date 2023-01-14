@@ -33,12 +33,11 @@ class Vertex:
                 self.y + other,
                 self.z + other,
             )
-        else:
-            return Vertex(
-                self.x + other.x,
-                self.y + other.y,
-                self.z + other.z,
-            )
+        return Vertex(
+            self.x + other.x,
+            self.y + other.y,
+            self.z + other.z,
+        )
 
     def __radd__(
         self, other: Union[type["Vertex"], int, float]
@@ -49,12 +48,11 @@ class Vertex:
                 self.y + other,
                 self.z + other,
             )
-        else:
-            return Vertex(
-                self.x + other.x,
-                self.y + other.y,
-                self.z + other.z,
-            )
+        return Vertex(
+            self.x + other.x,
+            self.y + other.y,
+            self.z + other.z,
+        )
 
     def __sub__(
         self, other: Union[type["Vertex"], int, float]
@@ -65,12 +63,11 @@ class Vertex:
                 self.y - other,
                 self.z - other,
             )
-        else:
-            return Vertex(
-                self.x - other.x,
-                self.y - other.y,
-                self.z - other.z,
-            )
+        return Vertex(
+            self.x - other.x,
+            self.y - other.y,
+            self.z - other.z,
+        )
 
     def __mul__(
         self, other: Union[type["Vertex"], int, float]
@@ -81,12 +78,11 @@ class Vertex:
                 self.y * other,
                 self.z * other,
             )
-        else:
-            return Vertex(
-                self.x * other.x,
-                self.y * other.y,
-                self.z * other.z,
-            )
+        return Vertex(
+            self.x * other.x,
+            self.y * other.y,
+            self.z * other.z,
+        )
 
     def __truediv__(self, other: int) -> type["Vertex"]:
         return Vertex(
@@ -125,6 +121,11 @@ class Face:
     vertex_two: Vertex
     vertex_three: Vertex
     colour: Colour = COLOUR_WHITE
+
+    def set_colour(self, colour: Colour) -> None:
+        """Setter for colour."""
+        # NOTE: not the best way maybe, but want to protect other fields
+        object.__setattr__(self, "colour", colour)
 
     @property
     def out_properties(self) -> str:
