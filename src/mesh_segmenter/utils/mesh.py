@@ -115,7 +115,7 @@ class Vertex:
         return f"{self.x} {self.y} {self.z}"
 
 
-@dataclass(frozen=True)
+@dataclass
 class Face:
     vertex_one: Vertex
     vertex_two: Vertex
@@ -126,6 +126,17 @@ class Face:
         """Setter for colour."""
         # NOTE: not the best way maybe, but want to protect other fields
         object.__setattr__(self, "colour", colour)
+
+    def __eq__(self, other: type["Face"]) -> bool:
+        """Faces are equal if vertices are equal."""
+        v_one_equal = self.vertex_one == other.vertex_one
+        v_two_equal = self.vertex_two == other.vertex_two
+        v_three_equal = self.vertex_three == other.vertex_three
+        return v_one_equal and v_two_equal and v_three_equal
+
+    def __hash__(self) -> int:
+        """Colour doesnt influence distances or probabilities."""
+        return hash(f"{self.vertex_one}_{self.vertex_two}_{self.vertex_three}")
 
     @property
     def out_properties(self) -> str:

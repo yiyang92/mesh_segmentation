@@ -1,20 +1,35 @@
 import logging
 from copy import deepcopy
+import multiprocessing
+from functools import partial
+from concurrent.futures import ThreadPoolExecutor
 
 import tqdm
 
 from mesh_segmenter.graph import DualGraph
 from mesh_segmenter.utils.mesh import Mesh, Face
-from mesh_segmenter.utils.constants import NUM_ITERS, COLOUR_BLUE, COLOUR_RED
+from mesh_segmenter.utils.constants import (
+    MAX_NUM_ITERS,
+    COLOUR_BLUE,
+    COLOUR_RED,
+)
+from mesh_segmenter.utils.colour import Colour
 
 
 class BinarySegmenter:
-    """Segments a mesh into 2 segments."""
+    """Segments a mesh into the 2 segments."""
 
-    def __init__(self, num_iters: int = NUM_ITERS, prob_threshold=0.5):
+    def __init__(
+        self,
+        num_workers: int = multiprocessing.cpu_count(),
+        num_iters: int = MAX_NUM_ITERS,
+        prob_threshold: float = 0.5,
+        cluster_colors: tuple[Colour, Colour] = (COLOUR_BLUE, COLOUR_RED),
+    ):
+        self._num_workers = num_workers
         self._num_iters = num_iters
-        self._cluster_colors = [COLOUR_BLUE, COLOUR_RED]
-        self._color_unsure = COLOUR_BLUE + COLOUR_RED
+        self._cluster_colors = cluster_colors
+        self._color_unsure = sum(cluster_colors)
         self._prob_threshold = prob_threshold
 
     def _init_reprs(self, mesh: Mesh, dual_graph: DualGraph) -> list[Face]:
@@ -41,6 +56,7 @@ class BinarySegmenter:
         mesh: Mesh,
     ) -> None:
         """Updates in-place probabilities of belongings to the REPa or REPb."""
+        # TODO: parallelize, need to debug a closed context problem!
         for face in mesh.faces:
             # If distance is closer to other repr - probability of beloning lower
             # Update and normalize
@@ -77,6 +93,7 @@ class BinarySegmenter:
         mesh: Mesh,
         dual_graph: DualGraph,
     ) -> list[Face]:
+        # TODO: parallelize
         min_prob_a_dist = float("inf")
         min_prob_b_dist = float("inf")
         for face in mesh.faces:
@@ -154,7 +171,7 @@ class BinarySegmenter:
             else:
                 face.set_colour(self._color_unsure)
 
-        # TODO: fuzziness
+        # TODO: fuzziness on borders
         logging.info("Segment colours update completed.")
 
     def __call__(self, mesh: Mesh, dual_graph: DualGraph) -> Mesh:

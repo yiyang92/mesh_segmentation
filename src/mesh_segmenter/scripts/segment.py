@@ -1,11 +1,12 @@
 import argparse
+import multiprocessing
 from pathlib import Path
 import logging
 
-from mesh_segmenter.utils.constants import DecomposeMode
-from mesh_segmenter.utils.utils import parse_ply, write_ply
+from mesh_segmenter.utils.constants import SegmenterType
+from mesh_segmenter.utils.utils import parse_ply, write_ply, random_colours
 from mesh_segmenter.graph import DualGraph
-from mesh_segmenter.segmenter import BinarySegmenter
+from mesh_segmenter.segmenters import BinaryRecursive, BinarySegmenter
 
 
 def _parse_args() -> argparse.Namespace:
@@ -27,11 +28,24 @@ def _parse_args() -> argparse.Namespace:
         help="Output .ply filename",
     )
     parser.add_argument(
-        "-m",
-        "--decompose_mode",
+        "-s",
+        "--segmenter",
         type=str,
-        default=DecomposeMode.binary,
-        choices=list(DecomposeMode),
+        default=SegmenterType.binary,
+        choices=list(SegmenterType),
+    )
+    parser.add_argument(
+        "-k",
+        "--num_levels",
+        type=int,
+        default=1,
+        help="Number of segmentation levels for the binary segmenter.",
+    )
+    parser.add_argument(
+        "-t",
+        "--num_threads",
+        type=int,
+        default=multiprocessing.cpu_count(),
     )
     parser.add_argument(
         "-l",
@@ -40,6 +54,7 @@ def _parse_args() -> argparse.Namespace:
         choices=["INFO", "WARNING", "ERROR"],
         help="Logging level",
     )
+    # TODO: add some validation fof arguments
     return parser.parse_args()
 
 
@@ -51,8 +66,19 @@ def main():
     mesh = parse_ply(ply_path=args.input_file)
     dual_graph = DualGraph(mesh)
 
-    # Binary
-    segmenter = BinarySegmenter()
+    # Choose segmenter
+    if args.segmenter == SegmenterType.binary:
+        if args.num_levels == 1:
+            # Binary
+            segmenter = BinarySegmenter(num_workers=args.num_threads)
+        else:
+            # Binary recursive
+            segmenter = BinaryRecursive(
+                num_levels=args.num_levels,
+                num_workers=args.num_threads,
+            )
+
+    # Segment
     out_mesh = segmenter(mesh=mesh, dual_graph=dual_graph)
 
     # Output results

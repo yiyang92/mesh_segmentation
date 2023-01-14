@@ -1,7 +1,15 @@
 from pathlib import Path
+import random
 
 from mesh_segmenter.utils.mesh import Vertex, Face, Mesh
-from mesh_segmenter.utils.constants import CONVEX_LIMIT, ETA
+from mesh_segmenter.utils.constants import (
+    CONVEX_LIMIT,
+    ETA,
+    COLOUR_RED,
+    COLOUR_GREEN,
+    COLOUR_BLUE,
+)
+from mesh_segmenter.utils.colour import Colour
 
 HEADER_START = "ply"
 FORMAT = "format ascii 1.0"
@@ -51,11 +59,15 @@ def parse_ply(ply_path: Path) -> Mesh:
 
     start_idx += n_vertices
     # Parse faces
+    # We ignore any properties (as colour) on purpose
     for idx in range(start_idx, start_idx + n_faces):
         line = input_lines[idx]
 
-        # Assume triangles
-        _, v1_idx, v2_idx, v3_idx = line.strip().split()
+        # Assume triangles e.g 3 vx1 vx2 vx3 properties
+        line_ = line.strip().split()
+        v1_idx = line_[1]
+        v2_idx = line_[2]
+        v3_idx = line_[3]
 
         v1 = out_mesh_vertices[int(v1_idx)]
         v2 = out_mesh_vertices[int(v2_idx)]
@@ -138,3 +150,25 @@ def geodesic_distance(
     line_three_len = (face_one_c_orth - face_two_c_orth).length
 
     return line_one_len + line_two_len + line_three_len
+
+
+def random_colours(num_colours: int) -> list[Colour]:
+    """Form random colors for segments."""
+    # TODO: return iterator, which will return new colors, make class
+    if num_colours <= 0:
+        raise ValueError("Number of colours shoulde be >= 0")
+
+    colours = [COLOUR_RED, COLOUR_BLUE, COLOUR_GREEN]
+    if num_colours <= 3:
+        return colours[num_colours - 1 :]
+
+    for _ in range(3, num_colours):
+        colours.append(
+            Colour(
+                r=random.randint(0, 255),
+                g=random.randint(0, 255),
+                b=random.randint(0, 255),
+            ),
+        )
+
+    return colours
