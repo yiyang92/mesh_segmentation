@@ -56,7 +56,7 @@ class BinarySegmenter:
         mesh: Mesh,
     ) -> None:
         """Updates in-place probabilities of belongings to the REPa or REPb."""
-        
+
         def calculate_probs(face: Face) -> tuple[Face, list[float]]:
             # If distance is closer to other repr - probability of beloning lower
             # Update and normalize
@@ -69,13 +69,15 @@ class BinarySegmenter:
             prob_one /= dual_graph.get_distance(
                 face, reprs[0]
             ) + dual_graph.get_distance(face, reprs[1])
-            
+
             return face, [prob_zero, prob_one]
 
-        with ThreadPoolExecutor(max_workers=self._num_workers) as executor:
-            results = executor.map(calculate_probs, mesh.faces)
-            for face, prob_list in results:
-                probs[face] = prob_list
+        results = []
+        for face in mesh.faces:
+            results.append(calculate_probs(face))
+
+        for face, prob_list in results:
+            probs[face] = prob_list
 
     def _prob_dist_sum(
         self,
@@ -85,14 +87,11 @@ class BinarySegmenter:
         mesh: Mesh,
         dual_graph: DualGraph,
     ) -> float:
-        def calculate_prob_dist(face_cur: Face) -> float:
-            return probs[face_cur][cluster_idx] * dual_graph.get_distance(
+        out_sum = 0.0
+        for face_cur in mesh.faces:
+            out_sum += probs[face_cur][cluster_idx] * dual_graph.get_distance(
                 face_cur, face
             )
-
-        with ThreadPoolExecutor(self._num_workers) as executor:
-            results = executor.map(calculate_prob_dist, mesh.faces)
-            out_sum = sum(results)
 
         return out_sum
 
@@ -121,7 +120,10 @@ class BinarySegmenter:
             return (face, pa_dist_sum, pb_dist_sum)
 
         with ThreadPoolExecutor(max_workers=self._num_workers) as executor:
-            p_dist_sums = executor.map(calculate_sums, mesh.faces)
+            p_dist_sums = list(tqdm.tqdm(
+                executor.map(calculate_sums, mesh.faces),
+                total=mesh.num_faces,
+            ))
 
         min_prob_a_dist = float("inf")
         min_prob_b_dist = float("inf")
