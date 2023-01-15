@@ -4,7 +4,7 @@ from pathlib import Path
 import logging
 
 from mesh_segmenter.utils.constants import SegmenterType
-from mesh_segmenter.utils.utils import parse_ply, write_ply, random_colours
+from mesh_segmenter.utils.utils import parse_ply, write_ply
 from mesh_segmenter.graph import DualGraph
 from mesh_segmenter.segmenters import BinaryRecursive, BinarySegmenter
 

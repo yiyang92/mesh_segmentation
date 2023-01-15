@@ -1,5 +1,7 @@
 import logging
 import heapq
+import multiprocessing
+from concurrent.futures import ThreadPoolExecutor
 from typing import Union, Type
 from collections import defaultdict
 from dataclasses import dataclass
@@ -37,8 +39,14 @@ class HeapNode:
 class DualGraph:
     """Graph definition - adjacency list between centers of faces."""
 
-    def __init__(self, mesh: Mesh, dist_n_smallest=DIST_N_SMALLEST) -> None:
+    def __init__(
+        self,
+        mesh: Mesh,
+        dist_n_smallest=DIST_N_SMALLEST,
+        num_workers=multiprocessing.cpu_count(),
+    ) -> None:
         # Vertices and neighbours
+        self._num_workers = num_workers
         # Weighted graph of connected faces
         self._graph: dict[Face, dict[Face, GraphEdge]] = defaultdict(dict)
         # Keep track for weight
@@ -137,7 +145,7 @@ class DualGraph:
     def _shortest_path_dijkstra(
         self,
         start: Face,
-    ) -> dict[GraphEdge, float]:
+    ) -> tuple[Face, dict[GraphEdge, float]]:
         # Distances to nodes
         distances = {node: float("infinity") for node in self.graph}
         distances[start] = 0.0
@@ -161,12 +169,17 @@ class DualGraph:
                         HeapNode(distance=distances[neighbor], face=neighbor),
                     )
 
-        return distances
+        return start, distances
 
     def _calculate_distances(self):
         logging.info("Calculating distances between faces")
-        for face in tqdm.tqdm(self._mesh.faces, total=self._mesh.num_faces):
-            distances = self._shortest_path_dijkstra(face)
-            self._distance[face] = distances
+
+        with ThreadPoolExecutor(max_workers=self._num_workers) as executor:
+            results = tqdm.tqdm(
+                executor.map(self._shortest_path_dijkstra, self._mesh.faces),
+                total=self._mesh.num_faces,
+            )
+            for face, distances in results:
+                self._distance[face] = distances
 
         logging.info("Distances calulated")

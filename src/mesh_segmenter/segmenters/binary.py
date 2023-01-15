@@ -56,19 +56,26 @@ class BinarySegmenter:
         mesh: Mesh,
     ) -> None:
         """Updates in-place probabilities of belongings to the REPa or REPb."""
-        # TODO: parallelize, need to debug a closed context problem!
-        for face in mesh.faces:
+        
+        def calculate_probs(face: Face) -> tuple[Face, list[float]]:
             # If distance is closer to other repr - probability of beloning lower
             # Update and normalize
-            probs[face][0] = dual_graph.get_distance(face, reprs[1])
-            probs[face][0] /= dual_graph.get_distance(
+            prob_zero = dual_graph.get_distance(face, reprs[1])
+            prob_zero /= dual_graph.get_distance(
                 face, reprs[0]
             ) + dual_graph.get_distance(face, reprs[1])
 
-            probs[face][1] = dual_graph.get_distance(face, reprs[0])
-            probs[face][1] /= dual_graph.get_distance(
+            prob_one = dual_graph.get_distance(face, reprs[0])
+            prob_one /= dual_graph.get_distance(
                 face, reprs[0]
             ) + dual_graph.get_distance(face, reprs[1])
+            
+            return face, [prob_zero, prob_one]
+
+        with ThreadPoolExecutor(max_workers=self._num_workers) as executor:
+            results = executor.map(calculate_probs, mesh.faces)
+            for face, prob_list in results:
+                probs[face] = prob_list
 
     def _prob_dist_sum(
         self,
@@ -78,11 +85,14 @@ class BinarySegmenter:
         mesh: Mesh,
         dual_graph: DualGraph,
     ) -> float:
-        out_sum = 0
-        for face_cur in mesh.faces:
-            out_sum += probs[face_cur][cluster_idx] * dual_graph.get_distance(
+        def calculate_prob_dist(face_cur: Face) -> float:
+            return probs[face_cur][cluster_idx] * dual_graph.get_distance(
                 face_cur, face
             )
+
+        with ThreadPoolExecutor(self._num_workers) as executor:
+            results = executor.map(calculate_prob_dist, mesh.faces)
+            out_sum = sum(results)
 
         return out_sum
 
@@ -93,10 +103,7 @@ class BinarySegmenter:
         mesh: Mesh,
         dual_graph: DualGraph,
     ) -> list[Face]:
-        # TODO: parallelize
-        min_prob_a_dist = float("inf")
-        min_prob_b_dist = float("inf")
-        for face in mesh.faces:
+        def calculate_sums(face: Face) -> tuple[Face, float, float]:
             pa_dist_sum = self._prob_dist_sum(
                 face=face,
                 probs=probs,
@@ -111,6 +118,14 @@ class BinarySegmenter:
                 mesh=mesh,
                 dual_graph=dual_graph,
             )
+            return (face, pa_dist_sum, pb_dist_sum)
+
+        with ThreadPoolExecutor(max_workers=self._num_workers) as executor:
+            p_dist_sums = executor.map(calculate_sums, mesh.faces)
+
+        min_prob_a_dist = float("inf")
+        min_prob_b_dist = float("inf")
+        for face, pa_dist_sum, pb_dist_sum in p_dist_sums:
             # Choose a new repr set
             if pa_dist_sum < min_prob_a_dist:
                 min_prob_a_dist = pa_dist_sum
@@ -161,7 +176,7 @@ class BinarySegmenter:
     def _update_segment_colours(
         self, mesh: Mesh, probs: dict[Face, list[float]]
     ) -> None:
-        """Update coulours according to probabilities."""
+        """Update colours according to probabilities."""
         logging.info("Updating face segment colours")
         for face in mesh.faces:
             if probs[face][0] > self._prob_threshold:

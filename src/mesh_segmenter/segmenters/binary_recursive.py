@@ -63,7 +63,7 @@ class BinaryRecursive:
         level = 0
         while stack:
             logging.info(f"Segmenting level {level + 1}")
-            colours = random_colours(num_colours=(level + 1) * 2)
+            colours = random_colours(num_colours=2 ** (level + 1))
             output_meshes = []
             idx = 0
             # Segment submeshes of the original mesh
@@ -71,7 +71,7 @@ class BinaryRecursive:
                 mesh = stack.pop()
                 segmenter = BinarySegmenter(
                     num_workers=self._num_workers,
-                    cluster_colors=(colours[idx*2], colours[idx*2+1]),
+                    cluster_colors=(colours[idx * 2], colours[idx * 2 + 1]),
                 )
                 output_meshes.append(
                     segmenter(
