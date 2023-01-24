@@ -1,3 +1,5 @@
+<img src="examples/images/output_decompose_bunny4_k3.png" width="200" height="200">
+
 ### Mesh segmentation course project
 
 Implementation of Katz, Sagi, and Ayellet Tal. "Hierarchical mesh decomposition using fuzzy clustering and cuts." ACM transactions on graphics (TOG) 22.3 (2003): 954-961. 
@@ -25,6 +27,11 @@ For other options (e.g. setting an output dir, num threads):
 ```python
 segment_mesh -h
 ```
+
+### TODO
+- Better fuzzy borders
+- Real k-clustering
+- Iterartive solver and visualizations from the paper
 
 #### Requirements
 - python~=3.9
